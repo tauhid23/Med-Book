@@ -1,6 +1,9 @@
 import { createBrowserRouter } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import Layout from "../layout/Layout";
+import ListingPage from "../Page/listingClinik";
+import BlogPage from "../Page/blog";
+import ContactPage from "../Page/contact";
 // import NotFound from "../components/custom/NotFound";
 
 /* -------------------- LAZY PAGES -------------------- */
@@ -41,6 +44,30 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<Loader />}>
             <Home />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/list-your-clinic",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <ListingPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/blog",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <BlogPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/contact",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <ContactPage />
           </Suspense>
         ),
       },
