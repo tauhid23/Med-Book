@@ -1,4 +1,3 @@
-import { Award } from "lucide-react";
 import Award_icon from "../../../../public/Icon/Award_Icon.svg"
 
 export default function Awards() {
