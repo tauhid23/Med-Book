@@ -4,6 +4,8 @@ import Layout from "../layout/Layout";
 import ListingPage from "../Page/listingClinik";
 import BlogPage from "../Page/blog";
 import ContactPage from "../Page/contact";
+import AboutPage from "../Page/about";
+import BlogDetails from "../Page/blogDetails";
 // import NotFound from "../components/custom/NotFound";
 
 /* -------------------- LAZY PAGES -------------------- */
@@ -12,7 +14,7 @@ const Home = lazy(() => import("../Page/home"));
 
 /* -------------------- LOADER -------------------- */
 const Loader = () => (
-  <div className="flex items-center justify-center min-h-[40vh] text-lg font-semibold text-[var(--text)]">
+  <div className="flex items-center justify-center min-h-[40vh] text-lg font-semibold text-(--text)">
     Loading...
   </div>
 );
@@ -25,7 +27,7 @@ const ErrorBoundary = () => (
     </h1>
     <button
       onClick={() => window.location.reload()}
-      className="px-6 py-3 bg-[var(--accent)] text-white rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all"
+      className="px-6 py-3 bg-(--accent) text-white rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all"
     >
       Reload Page
     </button>
@@ -64,10 +66,34 @@ const router = createBrowserRouter([
         ),
       },
       {
+  path: "/blog/:slug",
+  element: (
+    <Suspense fallback={<Loader />}>
+      <BlogDetails />
+    </Suspense>
+  ),
+},
+{
+  path: "/blog/id/:id",
+  element: (
+    <Suspense fallback={<Loader />}>
+      <BlogDetails />
+    </Suspense>
+  ),
+},
+      {
         path: "/contact",
         element: (
           <Suspense fallback={<Loader />}>
             <ContactPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/about-us",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <AboutPage />
           </Suspense>
         ),
       },
