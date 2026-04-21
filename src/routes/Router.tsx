@@ -6,6 +6,14 @@ import BlogPage from "../Page/blog";
 import ContactPage from "../Page/contact";
 import AboutPage from "../Page/about";
 import BlogDetails from "../Page/blogDetails";
+import AllClinic from "../Page/allClinics";
+import SignUp from "../Page/auth/SignUp";
+import SignIn from "../Page/auth/SignIn";
+import OTPVerification from "../Page/auth/Varification";
+import ForgotPassword from "../Page/auth/ForgotPassword";
+import ResetPassword from "../Page/auth/ResetPassword";
+import ClinicDetails from "../Page/ClinicDetails";
+import BookingPage from "../Page/clinicBooking";
 // import NotFound from "../components/custom/NotFound";
 
 /* -------------------- LAZY PAGES -------------------- */
@@ -27,7 +35,7 @@ const ErrorBoundary = () => (
     </h1>
     <button
       onClick={() => window.location.reload()}
-      className="px-6 py-3 bg-(--accent) text-white rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all"
+      className="px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:opacity-90 active:scale-95 transition-all"
     >
       Reload Page
     </button>
@@ -41,6 +49,46 @@ const router = createBrowserRouter([
     element: <Layout />,
     errorElement: <ErrorBoundary />,
     children: [
+      {
+        path: "/signup",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <SignUp />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/signin",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <SignIn />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/forgot-password",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <ForgotPassword />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/varification",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <OTPVerification />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/reset-password",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <ResetPassword />
+          </Suspense>
+        ),
+      },
       {
         path: "/",
         element: (
@@ -97,6 +145,38 @@ const router = createBrowserRouter([
           </Suspense>
         ),
       },
+      {
+        path: "/see-all-clinic",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <AllClinic />
+          </Suspense>
+        ),
+      },
+      {
+  path: "/clinic-details/:slug",
+  element: (
+    <Suspense fallback={<Loader />}>
+      <ClinicDetails />
+    </Suspense>
+  ),
+},
+{
+  path: "/clinic-details/id/:id",
+  element: (
+    <Suspense fallback={<Loader />}>
+      <ClinicDetails />
+    </Suspense>
+  ),
+},
+{
+  path: "/booking-form",
+  element: (
+    <Suspense fallback={<Loader />}>
+      <BookingPage />
+    </Suspense>
+  ),
+},
     //   {
     //     path: "/pricing",
     //     element: (

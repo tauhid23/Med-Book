@@ -3,7 +3,7 @@ import hero_image from "../../../../public/Images/about_hero.png";
 
 const AboutHero = () => {
   return (
-    <section className="relative w-full overflow-hidden rounded-2xl gradient py-16 md:py-34 pt-32">
+    <section className="relative w-full overflow-hidden rounded-2xl gradient py-16 md:py-39 pt-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <AnimatePresence>  
         <motion.div
