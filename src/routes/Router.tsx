@@ -14,6 +14,7 @@ import ForgotPassword from "../Page/auth/ForgotPassword";
 import ResetPassword from "../Page/auth/ResetPassword";
 import ClinicDetails from "../Page/ClinicDetails";
 import BookingPage from "../Page/clinicBooking";
+import UserAccount from "../Page/userAccount";
 // import NotFound from "../components/custom/NotFound";
 
 /* -------------------- LAZY PAGES -------------------- */
@@ -174,6 +175,14 @@ const router = createBrowserRouter([
   element: (
     <Suspense fallback={<Loader />}>
       <BookingPage />
+    </Suspense>
+  ),
+},
+{
+  path: "/user-account",
+  element: (
+    <Suspense fallback={<Loader />}>
+      <UserAccount />
     </Suspense>
   ),
 },
