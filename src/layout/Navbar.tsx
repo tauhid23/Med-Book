@@ -186,6 +186,26 @@ export default function Navbar() {
                           <p className="text-sm text-gray-500">Choose your role</p>
                         </div>
                         <div className="p-2">
+
+
+                          {/* Just to show case then We will delete */}
+                    {/* ----------------- */}
+                    <Link
+                      to="/user-account"
+                      onClick={closeMenu}
+                      className="flex items-center gap-4 px-6 py-5 hover:bg-gray-50 rounded-2xl mb-3 transition-all"
+                    >
+                      <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
+                        <User size={28} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">User Account</p>
+                        <p className="text-sm text-gray-500">View you Account & Booking History</p>
+                      </div>
+                    </Link>
+
+                    {/* ----------------- */}
+
                           <Link
                             to="/signup"
                             className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 rounded-2xl transition-colors"
@@ -309,6 +329,24 @@ export default function Navbar() {
                     <p className="px-6 text-xs font-semibold text-gray-500 mb-4 tracking-widest">
                       GET STARTED AS
                     </p>
+
+                    {/* Just to show case then We will delete */}
+                    {/* ----------------- */}
+                    <Link
+                      to="/user-account"
+                      onClick={closeMenu}
+                      className="flex items-center gap-4 px-6 py-5 hover:bg-gray-50 rounded-2xl mb-3 transition-all"
+                    >
+                      <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
+                        <User size={28} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">User Account</p>
+                        <p className="text-sm text-gray-500">View you Account & Booking History</p>
+                      </div>
+                    </Link>
+
+                    {/* ----------------- */}
 
                     <Link
                       to="/signup"
