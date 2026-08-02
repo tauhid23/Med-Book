@@ -83,6 +83,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/verification",
+        element: (
+          <Suspense fallback={<Loader />}>
+            <OTPVerification />
+          </Suspense>
+        ),
+      },
+      {
         path: "/reset-password",
         element: (
           <Suspense fallback={<Loader />}>

@@ -1,8 +1,9 @@
-"use client";
-
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { ApiError, signin, type SigninPayload } from "../../lib/authApi";
+import { useAuthStore } from "../../store/authStore";
 
 interface FormData {
   email: string;
@@ -10,13 +11,26 @@ interface FormData {
 }
 
 interface Errors {
-  fullName?: string;
   email?: string;
   password?: string;
-  confirmPassword?: string;
 }
 
+type LocationState = {
+  message?: string;
+};
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof Error) return error.message;
+  return "Login failed. Please try again.";
+};
+
 const SignIn: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const locationState = location.state as LocationState | null;
+
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -24,12 +38,22 @@ const SignIn: React.FC = () => {
 
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const signinMutation = useMutation({
+    mutationFn: (payload: SigninPayload) => signin(payload),
+    onSuccess: (response) => {
+      setAuth({
+        accessToken: response.data.access,
+        refreshToken: response.data.refresh,
+        user: response.data.user,
+      });
+      navigate("/user-account");
+    },
+  });
 
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email) {
       newErrors.email = "Email address is required";
@@ -37,62 +61,55 @@ const SignIn: React.FC = () => {
       newErrors.email = "Please enter a valid email address";
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password =
-        "Password must contain uppercase, lowercase and number";
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
-    setIsLoading(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    alert("Account created successfully!");
-    // Here you would typically call your signup API
-    setIsLoading(false);
+    signinMutation.mutate({
+      email: formData.email.trim(),
+      password: formData.password,
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Clear error when user starts typing
     if (errors[name as keyof Errors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
+  const isLoading = signinMutation.isPending;
+
   return (
-    <div className="min-h-screen  flex items-center justify-center p-4 mt-34">
+    <div className="min-h-screen flex items-center justify-center p-4 mt-34">
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8">
-        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-semibold text-gray-900">
             Welcome Back!
           </h1>
           <p className="text-gray-600 mt-2 text-sm">
-            Been a while! Ready to dive back in? Let's get you signed in and
-            back to business!
+            Sign in to continue with MedBook.
           </p>
         </div>
 
-        {/* Form */}
+        {locationState?.message && (
+          <p className="rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700 mb-5">
+            {locationState.message}
+          </p>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Email Address */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email Address
@@ -112,7 +129,6 @@ const SignIn: React.FC = () => {
             )}
           </div>
 
-          {/* Password */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Password
@@ -132,6 +148,7 @@ const SignIn: React.FC = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -140,6 +157,7 @@ const SignIn: React.FC = () => {
               <p className="text-red-500 text-xs mt-1">{errors.password}</p>
             )}
           </div>
+
           <div className="flex justify-end">
             <Link
               to="/forgot-password"
@@ -148,11 +166,17 @@ const SignIn: React.FC = () => {
               Forgot Password
             </Link>
           </div>
-          {/* Sign In Button */}
+
+          {signinMutation.isError && (
+            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              {getErrorMessage(signinMutation.error)}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white font-semibold py-3.5 rounded-2xl transition-all duration-200 flex items-center justify-center text-base"
+            className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-2xl transition-all duration-200 flex items-center justify-center text-base"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -162,7 +186,6 @@ const SignIn: React.FC = () => {
           </button>
         </form>
 
-        {/* Devider */}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-200"></div>
@@ -172,7 +195,6 @@ const SignIn: React.FC = () => {
           </div>
         </div>
 
-        {/* Google Sign Up */}
         <button
           type="button"
           className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-xl py-3 px-4 hover:bg-gray-50 transition-colors"
@@ -185,10 +207,12 @@ const SignIn: React.FC = () => {
           <span className="font-medium text-gray-700">Sign In With Google</span>
         </button>
 
-        {/* Sign Up Link */}
         <p className="text-center text-sm text-gray-600 mt-6">
-          Doesn’t have an account?{" "}
-          <Link to="/signup" className="text-black font-medium hover:underline">
+          Does not have an account?{" "}
+          <Link
+            to="/signup?account_type=PATIENT"
+            className="text-black font-medium hover:underline"
+          >
             Sign Up
           </Link>
         </p>
