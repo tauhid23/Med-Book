@@ -1,7 +1,19 @@
-import { useState, useEffect } from "react";
-import { Link, NavLink } from "react-router-dom";
-import { Menu, X, ChevronDown, User, CircleUserRound } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import {
+  Building2,
+  ChevronDown,
+  CircleUserRound,
+  LogOut,
+  Menu,
+  User,
+  X,
+} from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useMutation } from "@tanstack/react-query";
 import logo from "../../public/Images/logo.svg";
+import { signout } from "../lib/authApi";
+import { useAuthStore } from "../store/authStore";
 
 const navLinks = [
   { label: "Home", to: "/" },
@@ -12,212 +24,435 @@ const navLinks = [
   { label: "Contact", to: "/contact" },
 ];
 
+const guestLinks = [
+  {
+    label: "I'm a Patient",
+    description: "Book appointments",
+    to: "/signup?account_type=PATIENT",
+    icon: <User size={24} className="text-blue-600" />,
+    iconClass: "bg-blue-100",
+  },
+  {
+    label: "I'm a Clinic Owner",
+    description: "Create a clinic-owner account",
+    to: "/signup?account_type=CLINIC_OWNER",
+    icon: <Building2 size={24} className="text-emerald-600" />,
+    iconClass: "bg-emerald-100",
+  },
+];
+
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNavbar, setShowNavbar] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const [isAtTop, setIsAtTop] = useState(true);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  // Enhanced scroll behavior
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const lastScrollY = useRef(0);
+  const navigate = useNavigate();
+
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const refreshToken = useAuthStore((state) => state.refreshToken);
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      if (!accessToken || !refreshToken) return null;
+      return signout(accessToken, refreshToken);
+    },
+    onSettled: () => {
+      clearAuth();
+      setUserDropdownOpen(false);
+      setMenuOpen(false);
+      navigate("/signin");
+    },
+  });
+
   useEffect(() => {
-    let ticking = false;
+    document.body.style.overflow = menuOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
 
+  useEffect(() => {
     const handleScroll = () => {
-      if (ticking) return;
-      ticking = true;
+      if (menuOpen) return;
 
-      requestAnimationFrame(() => {
-        const currentScrollY = window.scrollY;
-
-        setIsAtTop(currentScrollY < 20);
-
-        if (currentScrollY > lastScrollY && currentScrollY > 80) {
-          setShowNavbar(false);
-        } else {
-          setShowNavbar(true);
-        }
-
-        setLastScrollY(currentScrollY);
-        ticking = false;
-      });
+      const currentY = window.scrollY;
+      setIsAtTop(currentY < 20);
+      setShowNavbar(!(currentY > lastScrollY.current && currentY > 80));
+      lastScrollY.current = currentY;
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+  }, [menuOpen]);
 
-  // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuOpen && !(e.target as HTMLElement).closest("nav")) {
-        setMenuOpen(false);
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setUserDropdownOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpen]);
+    if (userDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
 
-  return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out ${
-        showNavbar ? "translate-y-0" : "-translate-y-full"
-      }`}
-    >
-      <div
-        className={`transition-all duration-500 ${
-          isAtTop
-            ? "bg-transparent py-6"
-            : "bg-white/55 backdrop-blur-xl py-4 shadow-lg"
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [userDropdownOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setUserDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const handleLogout = useCallback(() => {
+    logoutMutation.mutate();
+  }, [logoutMutation]);
+
+  const formattedRole = user?.role?.replace(/_/g, " ").toLowerCase();
+
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `relative text-sm font-medium transition-colors duration-200 ${
+      isActive ? "text-primary" : "text-gray-700 hover:text-primary"
+    }`;
+
+  const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `block px-6 py-4 text-lg font-medium rounded-2xl transition-all ${
+      isActive ? "bg-primary/10 text-primary" : "text-gray-700 hover:bg-gray-50"
+    }`;
+
+  const renderGuestLinks = (isMobile = false) =>
+    guestLinks.map((item) => (
+      <Link
+        key={item.to}
+        to={item.to}
+        onClick={isMobile ? closeMenu : () => setUserDropdownOpen(false)}
+        className={`flex items-center gap-4 hover:bg-gray-50 rounded-2xl transition-all ${
+          isMobile ? "px-6 py-5 mb-3" : "px-5 py-4"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center justify-between h-14">
-            {/* Logo Section */}
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="flex items-center justify-center">
-                <img
-                  src={logo}
-                  alt="MedBook Logo"
-                  className="h-12 w-auto transition-transform group-hover:scale-110 duration-300"
-                />
-              </div>
-              <h1 className="text-2xl font-semibold tracking-tighter text-primary">
-                MedBook
-              </h1>
-            </Link>
-
-            {/* Desktop Navigation */}
-            <ul className="hidden md:flex items-center gap-10">
-              {navLinks.map(({ label, to }) => (
-                <li key={to}>
-                 <NavLink to={to} end>
-  {({ isActive }) => {
-    const base = "relative text-sm font-medium px-1 py-1.5 transition-all duration-200";
-    const active = "text-primary";
-    const inactive = "text-black hover:text-primary group";
-
-    return (
-      <span className={`${base} ${isActive ? active : inactive}`}>
-        {label}
-        <span
-          className={`absolute -bottom-0.5 left-0 h-[2.5px] bg-primary rounded-full transition-all duration-300 ${
-            isActive ? "w-full" : "w-0 group-hover:w-full"
-          }`}
-        />
-      </span>
-    );
-  }}
-</NavLink>
-                </li>
-              ))}
-            </ul>
-
-            {/* Desktop CTA - Now User Type Button */}
-            <div className="hidden md:flex items-center gap-4">
-              <div className="relative">
-                <button
-                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-3 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all duration-200 text-secondary font-medium text-sm px-3 py-1.5 rounded-full hover:shadow-lg"
-                >
-                  <div className="w-6 h-6 rounded-full  flex items-center justify-center text-black/50">
-                    <CircleUserRound size={26} strokeWidth={1} />
-                  </div>
-                  <ChevronDown
-                    size={18}
-                    className={`transition-transform duration-300 text-blacl/50 ${
-                      userDropdownOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                {/* User Dropdown Menu */}
-                {userDropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-zinc-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-4 py-3 border-b border-zinc-100">
-                      <p className="font-medium text-zinc-900">Get Started</p>
-                      <p className="text-xs text-zinc-500">Choose how you'd like to proceed</p>
-                    </div>
-                    <div className="py-1">
-                      <a
-                        href="/signup"
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 text-zinc-700 hover:text-zinc-900 transition-colors"
-                      >
-                        <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-                          <User size={20} />
-                        </div>
-                        <div>
-                          <p className="font-medium">I'm a Patient</p>
-                          <p className="text-xs text-zinc-500">Book an appointment</p>
-                        </div>
-                      </a>
-                      <a
-                        href="/list-your-clinic"
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 text-zinc-700 hover:text-zinc-900 transition-colors"
-                      >
-                        <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-                          🏥
-                        </div>
-                        <div>
-                          <p className="font-medium">I'm a Clinic Owner</p>
-                          <p className="text-xs text-zinc-500">List your clinic</p>
-                        </div>
-                      </a>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden p-3 text-white hover:bg-white/10 rounded-xl transition-all active:scale-95"
-              aria-label="Toggle menu"
-            >
-              {menuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </nav>
+        <div
+          className={`${
+            isMobile ? "w-12 h-12" : "w-11 h-11"
+          } ${item.iconClass} rounded-2xl flex items-center justify-center`}
+        >
+          {item.icon}
         </div>
+        <div>
+          <p className={isMobile ? "font-semibold" : "font-medium"}>
+            {item.label}
+          </p>
+          <p className={isMobile ? "text-sm text-gray-500" : "text-xs text-gray-500"}>
+            {item.description}
+          </p>
+        </div>
+      </Link>
+    ));
 
-        {/* Mobile Menu */}
-        {menuOpen && (
-          <div className="md:hidden bg-zinc-950/95 backdrop-blur-xl border-t border-white/10 animate-in slide-in-from-top duration-300">
-            <div className="px-6 py-8 space-y-2">
-              {navLinks.map(({ label, to }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end
-                  onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `block px-6 py-4 rounded-2xl text-lg font-medium transition-all ${
-                      isActive
-                        ? "bg-white/10 text-white"
-                        : "text-white/70 hover:bg-white/5 hover:text-white"
-                    }`
-                  }
-                >
-                  {label}
-                </NavLink>
-              ))}
+  const renderAccountLinks = (isMobile = false) => (
+    <>
+      <Link
+        to="/user-account"
+        onClick={isMobile ? closeMenu : () => setUserDropdownOpen(false)}
+        className={`flex items-center gap-4 hover:bg-gray-50 rounded-2xl transition-all ${
+          isMobile ? "px-6 py-5 mb-3" : "px-5 py-4"
+        }`}
+      >
+        <div
+          className={`${
+            isMobile ? "w-12 h-12" : "w-11 h-11"
+          } bg-blue-100 rounded-2xl flex items-center justify-center`}
+        >
+          <User size={isMobile ? 28 : 24} className="text-blue-600" />
+        </div>
+        <div className="min-w-0">
+          <p className={isMobile ? "font-semibold" : "font-medium"}>
+            User Account
+          </p>
+          <p className={isMobile ? "text-sm text-gray-500" : "text-xs text-gray-500"}>
+            View account and bookings
+          </p>
+        </div>
+      </Link>
 
-              {/* Mobile User Action */}
-              <div className="pt-6 border-t border-white/10">
-                <Link
-                  to="/signup"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center justify-center gap-3 w-full bg-white text-zinc-900 font-semibold py-4 rounded-2xl hover:bg-zinc-100 active:scale-[0.985] transition-all"
-                >
-                  <User size={22} />
-                  Request Service
+      <button
+        type="button"
+        onClick={handleLogout}
+        disabled={logoutMutation.isPending}
+        className={`w-full flex items-center gap-4 hover:bg-red-50 rounded-2xl transition-all text-left disabled:opacity-60 ${
+          isMobile ? "px-6 py-5" : "px-5 py-4"
+        }`}
+      >
+        <div
+          className={`${
+            isMobile ? "w-12 h-12" : "w-11 h-11"
+          } bg-red-100 rounded-2xl flex items-center justify-center`}
+        >
+          <LogOut size={isMobile ? 27 : 23} className="text-red-600" />
+        </div>
+        <div>
+          <p className="font-semibold text-red-600">
+            {logoutMutation.isPending ? "Logging out..." : "Logout"}
+          </p>
+          <p className={isMobile ? "text-sm text-gray-500" : "text-xs text-gray-500"}>
+            Sign out of this device
+          </p>
+        </div>
+      </button>
+    </>
+  );
+
+  return (
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+          showNavbar ? "translate-y-0" : "-translate-y-full"
+        }`}
+      >
+        <div
+          className={`transition-all duration-500 ${
+            isAtTop && !menuOpen
+              ? "bg-transparent py-6"
+              : "bg-white/90 backdrop-blur-xl py-4 shadow-sm"
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+            <nav className="flex items-center justify-between h-16">
+              <div className="hidden lg:flex items-center justify-between w-full">
+                <Link to="/" className="flex items-center gap-3 group">
+                  <img
+                    src={logo}
+                    alt="MedBook"
+                    className="h-11 w-auto transition-transform group-hover:scale-105"
+                  />
+                  <h1 className="text-2xl font-semibold tracking-tighter text-primary">
+                    MedBook
+                  </h1>
                 </Link>
+
+                <ul className="flex items-center gap-10">
+                  {navLinks.map(({ label, to }) => (
+                    <li key={to}>
+                      <NavLink to={to} end className={navLinkClass}>
+                        {({ isActive }) => (
+                          <>
+                            {label}
+                            <span
+                              className={`absolute -bottom-1 left-0 h-[2.5px] bg-primary rounded-full transition-all duration-300 ${
+                                isActive ? "w-full" : "w-0"
+                              }`}
+                            />
+                          </>
+                        )}
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setUserDropdownOpen((prev) => !prev)}
+                    aria-expanded={userDropdownOpen}
+                    aria-haspopup="true"
+                    className="flex items-center gap-3 bg-white border border-gray-200 hover:border-gray-300 px-5 py-2.5 rounded-full transition-all active:scale-95"
+                  >
+                    <CircleUserRound size={26} className="text-gray-600" />
+                    <ChevronDown
+                      size={18}
+                      className={`transition-transform duration-300 ${
+                        userDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {userDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute right-0 mt-4 w-72 bg-white rounded-3xl shadow-2xl border border-gray-100 py-2 z-50"
+                      >
+                        {isAuthenticated ? (
+                          <>
+                            <div className="px-6 py-4 border-b">
+                              <p className="font-semibold truncate">
+                                {user?.email || "User Account"}
+                              </p>
+                              {formattedRole && (
+                                <p className="text-sm text-gray-500 capitalize">
+                                  {formattedRole}
+                                </p>
+                              )}
+                            </div>
+                            <div className="p-2">{renderAccountLinks()}</div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="px-6 py-4 border-b">
+                              <p className="font-semibold">Get Started</p>
+                              <p className="text-sm text-gray-500">
+                                Choose your role
+                              </p>
+                            </div>
+                            <div className="p-2">{renderGuestLinks()}</div>
+                          </>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
-            </div>
+
+              <div className="lg:hidden flex items-center justify-between w-full">
+                <Link to="/" className="flex items-center gap-3">
+                  <img src={logo} alt="MedBook" className="h-10 w-auto" />
+                  <h1 className="text-xl font-semibold tracking-tighter text-primary">
+                    MedBook
+                  </h1>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen((prev) => {
+                      const next = !prev;
+                      if (next) setShowNavbar(true);
+                      return next;
+                    });
+                  }}
+                  aria-label={menuOpen ? "Close menu" : "Open menu"}
+                  aria-expanded={menuOpen}
+                  className="p-3 text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    {menuOpen ? (
+                      <motion.div
+                        key="close"
+                        initial={{ rotate: -90, opacity: 0 }}
+                        animate={{ rotate: 0, opacity: 1 }}
+                        exit={{ rotate: 90, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <X size={28} />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="menu"
+                        initial={{ rotate: 90, opacity: 0 }}
+                        animate={{ rotate: 0, opacity: 1 }}
+                        exit={{ rotate: -90, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Menu size={28} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </button>
+              </div>
+            </nav>
           </div>
+
+          <AnimatePresence>
+            {menuOpen && (
+              <motion.div
+                key="mobile-menu"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="lg:hidden bg-white border-t shadow-xl overflow-hidden"
+              >
+                <div className="px-6 py-8">
+                  {navLinks.map(({ label, to }, i) => (
+                    <motion.div
+                      key={to}
+                      initial={{ opacity: 0, x: -16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05, duration: 0.25 }}
+                    >
+                      <NavLink
+                        to={to}
+                        end
+                        onClick={closeMenu}
+                        className={mobileNavLinkClass}
+                      >
+                        {label}
+                      </NavLink>
+                    </motion.div>
+                  ))}
+
+                  <motion.div
+                    className="pt-4 mt-8 border-t"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: navLinks.length * 0.05 + 0.1 }}
+                  >
+                    {isAuthenticated ? (
+                      <>
+                        <div className="px-6 mb-4">
+                          <p className="text-xs font-semibold text-gray-500 tracking-widest">
+                            ACCOUNT
+                          </p>
+                          <p className="font-semibold truncate mt-2">
+                            {user?.email || "User Account"}
+                          </p>
+                          {formattedRole && (
+                            <p className="text-sm text-gray-500 capitalize">
+                              {formattedRole}
+                            </p>
+                          )}
+                        </div>
+                        {renderAccountLinks(true)}
+                      </>
+                    ) : (
+                      <>
+                        <p className="px-6 text-xs font-semibold text-gray-500 mb-4 tracking-widest">
+                          GET STARTED AS
+                        </p>
+                        {renderGuestLinks(true)}
+                      </>
+                    )}
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </header>
+
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
+            onClick={closeMenu}
+            aria-hidden="true"
+          />
         )}
-      </div>
-    </header>
+      </AnimatePresence>
+    </>
   );
 }

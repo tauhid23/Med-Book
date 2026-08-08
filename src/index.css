@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+
 /* =========================
     Tailwind V4 Theme
     These auto-generate text-*, bg-*, border-* classes!
@@ -71,6 +72,22 @@
       rgba(255, 255, 255, 0.00) -7.9%,
       rgba(71, 194, 255, 0.40) 39.01%,
       rgba(71, 194, 255, 0.80) 86.31%
+    );
+  }
+  .gradientfaq {
+    background: linear-gradient(
+      128deg,
+      rgba(255, 255, 255, 0.00) -7.9%,
+      rgba(184, 231, 255, 0.4) 39.01%,
+      rgba(170, 227, 255, 0.8) 86.31%
+    );
+  }
+  .gradienttwo {
+    background: linear-gradient(
+      78deg,
+      rgba(41, 72, 85, 0.534) -7.9%,
+      rgba(40, 83, 104, 0.8) 39.01%,
+      rgba(6, 69, 100, 0.8) 86.31%
     );
   }
 }

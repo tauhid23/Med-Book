@@ -64,7 +64,7 @@ function StarRating({ rating }: { rating: number }) {
 
 function LocationIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
@@ -73,7 +73,7 @@ function LocationIcon() {
 
 function CheckIcon() {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-green-300 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-green-300 shrink-0" viewBox="0 0 20 20" fill="currentColor">
       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
     </svg>
   );
@@ -97,11 +97,12 @@ function AmenityIcon({ type }: { type: string }) {
   );
 }
 
+
 function ClinicCard({ clinic }: { clinic: typeof clinics[0] }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col w-full">
       {/* Image */}
-      <div className="w-full h-[330px] overflow-hidden rounded-xl m-3" style={{ width: "calc(100% - 24px)" }}>
+      <div className="w-full h-82.5 overflow-hidden rounded-xl m-3" style={{ width: "calc(100% - 24px)" }}>
         <img
           src={clinic.image}
           alt={clinic.name}
@@ -175,21 +176,20 @@ function ClinicCard({ clinic }: { clinic: typeof clinics[0] }) {
 
 export default function FeaturedClinics() {
   return (
-    <section className="w-full bg-white py-16 px-6">
+    <section className="w-full bg-white py-10 sm:py-14 lg:py-16 px-4 sm:px-6">
+      
       {/* Header */}
-      <div className="text-center mb-12">
-        <h2
-          className="text-4xl font-bold mb-3 text-primary"
-         >
+      <div className="text-center mb-10 sm:mb-12">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 text-primary">
           Featured Clinics
         </h2>
-        <p className="text-gray-400 text-base">
+        <p className="text-gray-400 text-sm sm:text-base">
           Trusted and certified dialysis centers available for booking
         </p>
       </div>
 
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      {/* Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 max-w-6xl mx-auto">
         {clinics.map((clinic) => (
           <ClinicCard key={clinic.id} clinic={clinic} />
         ))}
