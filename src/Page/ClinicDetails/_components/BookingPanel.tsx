@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 
-function BookingPanel() {
+function BookingPanel({ price = "74" }: { price?: string }) {
+  const displayPrice = price.startsWith("$") ? price : `$${price}`;
+
   return (
     <div className="sticky top-6 self-start bg-white rounded-2xl border border-gray-100 shadow-md p-5 flex flex-col gap-4">
       <div className="flex items-baseline gap-1">
-        <span className="text-3xl font-bold text-gray-900">$74</span>
+        <span className="text-3xl font-bold text-gray-900">{displayPrice}</span>
         <span className="text-sm text-gray-400 font-normal">/ Per treatment</span>
       </div>
 

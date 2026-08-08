@@ -1,7 +1,44 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import BookingPanel from "./BookingPanel";
+import type {
+  ClinicAcceptedPatient,
+  ClinicDetailsItem,
+  ClinicFacility,
+  ClinicPaymentMethod,
+} from "../../../lib/clinicApi";
 // ── Types ──────────────────────────────────────────────
 type NearbyTab = "Visit" | "Stay" | "Eat";
+
+const defaultAddress =
+  "Block 21A, Orchard Boulevard, #12-144 Orchard Gateway Tower 2, New Somerset MRT Exit 9, Singapore 238895";
+
+const defaultDescription =
+  "Our clinic proudly welcomes international patients seeking trusted and high-quality medical services in Singapore. From expert consultations to advanced treatments, we offer complete support, including appointment management and personalized care plans. With our multilingual team and globally recognized specialists, we ensure a smooth and comfortable healthcare experience for patients from around the world.";
+
+const defaultAcceptedPatients = ["HIV Patients", "HBV Patients", "HCV Patients"];
+const defaultFacilities = ["Refreshments", "Free Transfer", "Free Parking"];
+const defaultPaymentMethods = ["Cash", "Bank Transfers", "Credit Cards"];
+
+const getAcceptedPatientName = (patient: ClinicAcceptedPatient) =>
+  patient.name ?? patient.patient_type ?? patient.title ?? "";
+
+const getFacilityName = (facility: ClinicFacility) =>
+  facility.name ?? facility.facility_name ?? facility.title ?? "";
+
+const getPaymentMethodName = (method: ClinicPaymentMethod) =>
+  method.name ?? method.payment_method ?? method.title ?? "";
+
+const getMapUrl = (clinic?: ClinicDetailsItem) => {
+  const latitude = Number.parseFloat(clinic?.latitude ?? "");
+  const longitude = Number.parseFloat(clinic?.longitude ?? "");
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return "https://www.openstreetmap.org/export/embed.html?bbox=103.7,1.25,104.0,1.4&layer=mapnik";
+  }
+
+  const offset = 0.03;
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - offset},${latitude - offset},${longitude + offset},${latitude + offset}&layer=mapnik&marker=${latitude},${longitude}`;
+};
 
 // ── Icons ──────────────────────────────────────────────
 function ShareIcon() {
@@ -154,14 +191,27 @@ function MiniCalendar({ month, year, highlightDays }: { month: number; year: num
 
 
 // ── Main Page ───────────────────────────────────────────
-export default function ClinicDetail() {
+export default function ClinicDetail({ clinic }: { clinic?: ClinicDetailsItem }) {
   const [nearbyTab, setNearbyTab] = useState<NearbyTab>("Visit");
 
-  const nearbyTabs: { id: NearbyTab; icon: React.ReactNode}[] = [
+  const nearbyTabs: { id: NearbyTab; icon: ReactNode}[] = [
     { id: "Visit", icon: <VisitIcon /> },
     { id: "Stay",  icon: <StayIcon /> },
     { id: "Eat",   icon: <EatIcon /> },
   ];
+  const address =
+    clinic?.address ||
+    [clinic?.city, clinic?.country].filter(Boolean).join(", ") ||
+    defaultAddress;
+  const acceptedPatients = clinic
+    ? clinic.accepted_patients.map(getAcceptedPatientName).filter(Boolean)
+    : defaultAcceptedPatients;
+  const facilities = clinic
+    ? clinic.facilities.map(getFacilityName).filter(Boolean)
+    : defaultFacilities;
+  const paymentMethods = clinic
+    ? clinic.payment_methods.map(getPaymentMethodName).filter(Boolean)
+    : defaultPaymentMethods;
 
   return (
     <div className="min-h-screen bg-white">
@@ -174,7 +224,7 @@ export default function ClinicDetail() {
             {/* Header */}
             <div>
               <div className="flex items-start justify-between mb-1">
-                <h1 className="text-2xl font-bold text-gray-900">City Medical Center</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{clinic?.name ?? "City Medical Center"}</h1>
                 <button className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors shrink-0 ml-4">
                   <ShareIcon />
                   Share
@@ -182,7 +232,7 @@ export default function ClinicDetail() {
               </div>
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <LocationPinIcon />
-                <span>Block 21A, Orchard Boulevard, #12-144 Orchard Gateway Tower 2, New Somerset MRT Exit 9, Singapore 238895</span>
+                <span>{address}</span>
               </div>
             </div>
 
@@ -193,8 +243,8 @@ export default function ClinicDetail() {
               <h2 className="text-base font-semibold text-gray-800 mb-3">Expert Care for Diverse Conditions*</h2>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-gray-500 font-medium">Accepting:</span>
-                {["HIV Patients", "HBV Patients", "HCV Patients"].map((tag) => (
-                  <div key={tag} className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1">
+                {acceptedPatients.map((tag, index) => (
+                  <div key={`${tag}-${index}`} className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1">
                     <CheckCircleIcon />
                     <span className="text-xs text-gray-600">{tag}</span>
                   </div>
@@ -206,10 +256,7 @@ export default function ClinicDetail() {
             <div>
               <h2 className="text-base font-semibold text-gray-800 mb-2">About the Clinic</h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Our clinic proudly welcomes international patients seeking trusted and high-quality medical services in Singapore.
-                From expert consultations to advanced treatments, we offer complete support, including appointment management
-                and personalized care plans. With our multilingual team and globally recognized specialists, we ensure a smooth and
-                comfortable healthcare experience for patients from around the world.
+                {clinic?.description || defaultDescription}
               </p>
             </div>
 
@@ -217,13 +264,9 @@ export default function ClinicDetail() {
             <div>
               <h2 className="text-base font-semibold text-gray-800 mb-3">What this clinic offers</h2>
               <div className="flex items-center gap-6">
-                {[
-                  { icon: <RefreshmentIcon />, label: "Refreshments" },
-                  { icon: <TransferIcon />,    label: "Free Transfer" },
-                  { icon: <ParkingIcon />,     label: "Free Parking" },
-                ].map(({ icon, label }) => (
-                  <div key={label} className="flex items-center gap-1.5">
-                    {icon}
+                {facilities.map((label, index) => (
+                  <div key={`${label}-${index}`} className="flex items-center gap-1.5">
+                    {label === "Refreshments" ? <RefreshmentIcon /> : label === "Free Transfer" ? <TransferIcon /> : <ParkingIcon />}
                     <span className="text-sm text-gray-500">{label}</span>
                   </div>
                 ))}
@@ -251,13 +294,9 @@ export default function ClinicDetail() {
             <div>
               <h2 className="text-base font-semibold text-gray-800 mb-3">Accepted payment method</h2>
               <div className="flex items-center gap-6">
-                {[
-                  { icon: <CashIcon />,  label: "Cash" },
-                  { icon: <BankIcon />,  label: "Bank Transfers" },
-                  { icon: <CardIcon />,  label: "Credit Cards" },
-                ].map(({ icon, label }) => (
-                  <div key={label} className="flex items-center gap-1.5">
-                    {icon}
+                {paymentMethods.map((label, index) => (
+                  <div key={`${label}-${index}`} className="flex items-center gap-1.5">
+                    {label === "Cash" ? <CashIcon /> : label === "Bank Transfers" ? <BankIcon /> : <CardIcon />}
                     <span className="text-sm text-gray-500">{label}</span>
                   </div>
                 ))}
@@ -272,7 +311,7 @@ export default function ClinicDetail() {
                 height="100%"
                 style={{ border: 0 }}
                 loading="lazy"
-                src="https://www.openstreetmap.org/export/embed.html?bbox=103.7,1.25,104.0,1.4&layer=mapnik"
+                src={getMapUrl(clinic)}
               />
             </div>
 
@@ -313,7 +352,7 @@ export default function ClinicDetail() {
 
           {/* ── RIGHT STICKY COLUMN ── */}
           <div className="">
-  <BookingPanel />
+  <BookingPanel price={clinic?.per_treatment_price} />
 </div>
 
         </div>

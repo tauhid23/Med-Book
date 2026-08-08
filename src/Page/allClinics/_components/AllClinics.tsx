@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-
-
+import { useQuery } from "@tanstack/react-query";
+import { getClinics, type ClinicListItem } from "../../../lib/clinicApi";
 
 type Treatment = {
   name: string;
@@ -21,106 +21,39 @@ type Clinic = {
   treatments: Treatment[];
 };
 
-const clinics: Clinic[] = [
-  {
-    id: 1,
-    name: "City Medical Center",
-    image: "https://images.unsplash.com/photo-1587351021355-a479a299d2f9?w=600&q=80",
-    rating: 4.9,
-    location: "Marsala, Italy",
-    distance: "0.69 km from the city center",
-    badges: ["EHIC", "GHIC"],
-    amenities: ["Refreshments", "Free Transfer", "Free Parking"],
-    treatments: [
-      { name: "Dialysis HD", price: "$250" },
-      { name: "Dialysis HDF", price: "$250" },
-    ],
-  },
-  {
-    id: 2,
-    name: "Apollo Dialysis Hub",
-    image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&q=80",
-    rating: 4.7,
-    location: "Milan, Italy",
-    distance: "1.2 km from the city center",
-    badges: ["EHIC", "GHIC"],
-    amenities: ["Refreshments", "Free Transfer", "Free Parking"],
-    treatments: [
-      { name: "Dialysis HD", price: "$230" },
-      { name: "Dialysis HDF", price: "$260" },
-    ],
-  },
-  {
-    id: 3,
-    name: "MedLife Renal Clinic",
-    image: "https://images.unsplash.com/photo-1626315869436-d6781ba69d6e?w=600&q=80",
-    rating: 4.8,
-    location: "Rome, Italy",
-    distance: "2.1 km from the city center",
-    badges: ["EHIC"],
-    amenities: ["Refreshments", "Free Parking"],
-    treatments: [
-      { name: "Dialysis HD", price: "$220" },
-      { name: "Dialysis HDF", price: "$245" },
-    ],
-  },
-  {
-    id: 4,
-    name: "NephroPlus Center",
-    image: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=600&q=80",
-    rating: 4.6,
-    location: "Naples, Italy",
-    distance: "0.95 km from the city center",
-    badges: ["EHIC", "GHIC"],
-    amenities: ["Refreshments", "Free Transfer", "Free Parking"],
-    treatments: [
-      { name: "Dialysis HD", price: "$210" },
-      { name: "Dialysis HDF", price: "$240" },
-    ],
-  },
-  {
-    id: 5,
-    name: "Global Kidney Institute",
-    image: "https://images.unsplash.com/photo-1632833239869-a37e3a5806d2?w=600&q=80",
-    rating: 4.9,
-    location: "Florence, Italy",
-    distance: "1.5 km from the city center",
-    badges: ["EHIC", "GHIC"],
-    amenities: ["Refreshments", "Free Transfer", "Free Parking"],
-    treatments: [
-      { name: "Dialysis HD", price: "$270" },
-      { name: "Dialysis HDF", price: "$295" },
-    ],
-  },
-  {
-    id: 6,
-    name: "RenalCare Specialists",
-    image: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=600&q=80",
-    rating: 4.5,
-    location: "Venice, Italy",
-    distance: "3.0 km from the city center",
-    badges: ["GHIC"],
-    amenities: ["Refreshments", "Free Parking"],
-    treatments: [
-      { name: "Dialysis HD", price: "$200" },
-      { name: "Dialysis HDF", price: "$225" },
-    ],
-  },
-  {
-    id: 7,
-    name: "Sunrise Dialysis Clinic",
-    image: "https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=600&q=80",
-    rating: 4.8,
-    location: "Bologna, Italy",
-    distance: "0.5 km from the city center",
-    badges: ["EHIC", "GHIC"],
-    amenities: ["Refreshments", "Free Transfer", "Free Parking"],
-    treatments: [
-      { name: "Dialysis HD", price: "$255" },
-      { name: "Dialysis HDF", price: "$275" },
-    ],
-  },
-];
+const fallbackImage =
+  "https://images.unsplash.com/photo-1587351021355-a479a299d2f9?w=600&q=80";
+
+const getTreatmentName = (treatment: ClinicListItem["treatments"][number]) =>
+  treatment.name ?? treatment.treatment_name ?? treatment.title ?? "Treatment";
+
+const getTreatmentPrice = (treatment: ClinicListItem["treatments"][number]) =>
+  treatment.price ?? treatment.amount ?? "";
+
+const getFacilityName = (facility: ClinicListItem["facilities"][number]) =>
+  facility.name ?? facility.facility_name ?? facility.title ?? "";
+
+const getRating = (clinic: ClinicListItem) => {
+  const rating =
+    clinic.average_rating ?? Number.parseFloat(clinic.ratings[0]?.rating ?? "0");
+
+  return Number.isFinite(rating) ? rating : 0;
+};
+
+const mapClinic = (clinic: ClinicListItem): Clinic => ({
+  id: clinic.id,
+  name: clinic.name,
+  image: clinic.images[0]?.image_url ?? clinic.images[0]?.image ?? fallbackImage,
+  rating: getRating(clinic),
+  location: [clinic.city, clinic.country].filter(Boolean).join(", "),
+  distance: clinic.distance_from_city_center,
+  badges: clinic.insurances.map((insurance) => insurance.insurance_name),
+  amenities: clinic.facilities.map(getFacilityName).filter(Boolean),
+  treatments: clinic.treatments.map((treatment) => ({
+    name: getTreatmentName(treatment),
+    price: getTreatmentPrice(treatment),
+  })),
+});
 
 
 const containerVariants = {
@@ -224,8 +157,8 @@ function ClinicCard({ clinic }: { clinic: Clinic }) {
         </div>
 
         <div className="flex items-center gap-3">
-          {clinic.badges.map((badge) => (
-            <div key={badge} className="flex items-center gap-1">
+          {clinic.badges.map((badge, index) => (
+            <div key={`${badge}-${index}`} className="flex items-center gap-1">
               <CheckIcon />
               <span className="text-sm font-medium" style={{ color: "#0ea5e9" }}>{badge}</span>
             </div>
@@ -233,8 +166,8 @@ function ClinicCard({ clinic }: { clinic: Clinic }) {
         </div>
 
         <div className="flex items-center gap-4">
-          {clinic.amenities.map((amenity) => (
-            <div key={amenity} className="flex items-center gap-1">
+          {clinic.amenities.map((amenity, index) => (
+            <div key={`${amenity}-${index}`} className="flex items-center gap-1">
               <AmenityIcon type={amenity} />
               <span className="text-xs text-gray-500">{amenity}</span>
             </div>
@@ -246,8 +179,8 @@ function ClinicCard({ clinic }: { clinic: Clinic }) {
         <div className="flex items-end justify-between">
           <div>
             <p className="text-xs text-gray-400 mb-1">Per treatment</p>
-            {clinic.treatments.map((t) => (
-              <p key={t.name} className="text-sm font-normal text-gray-500">
+            {clinic.treatments.map((t, index) => (
+              <p key={`${t.name}-${index}`} className="text-sm font-normal text-gray-500">
                 {t.name}{" "}
                 <span className="font-normal text-gray-500">{t.price}</span>
               </p>
@@ -273,6 +206,12 @@ function AllClinics() {
   const [activeFilter, setActiveFilter] = useState<string>("All Dialysis");
   const [sortBy, setSortBy] = useState<string>("Rating");
   const [sortOpen, setSortOpen] = useState<boolean>(false);
+  const { data } = useQuery({
+    queryKey: ["clinics"],
+    queryFn: getClinics,
+  });
+
+  const clinics = data?.clinics.map(mapClinic) ?? [];
 
   const filteredClinics = clinics.filter((clinic) => {
     if (activeFilter === "All Dialysis") return true;
